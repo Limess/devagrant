@@ -1,16 +1,18 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# Load default configuration values
 require "yaml"
 
 config = YAML.load_file('vagrant-default.yaml')
 
+# Load per-project overrides if they exist
 if File.exist?('vagrant.yaml')
     user_conf = YAML.load_file('vagrant.yaml')
     config.merge!(user_conf)
 end
 
-Vagrant.require_version '>= 1.6.0'
+# Vagrant.require_version ">= 1.6.0"
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -19,7 +21,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box     = config['box']
     config.vm.box_url = config['box_url']
   # End box section
-
 
   # Begin network section
     if config['hostname'].to_s.strip.length != 0
@@ -35,7 +36,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.network :forwarded_port, guest: port['guest'].to_i, host: port['host'].to_i
       end
     end
-  # Begin network section
+  # End network section
+
 
   # Begin SSH section
     if !config['ssh']['agent_forwarding'].nil?
@@ -133,6 +135,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       puppet.manifests_path = config['provisioner']['puppet']['manifests_path']
       puppet.manifest_file  = config['provisioner']['puppet']['manifest_file']
       puppet.module_path = config['provisioner']['puppet']['module_path']
+
+      if config['provisioner']['puppet']['facter'].empty?
+        config['provisioner']['puppet']['facter'].each do |key, value|
+          puppet.facter = {
+            "#{key}" => "#{value}"
+          }
+        end
+      end
+
     end
  end
  # End Puppet section
