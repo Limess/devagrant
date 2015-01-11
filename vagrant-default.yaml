@@ -1,0 +1,46 @@
+---
+box: puphpet/ubuntu1404-x64
+box_url: puphpet/ubuntu1404-x64
+hostname: 'vagrantTest'
+network:
+    forwarded_port:
+        http:
+            host: '8080'
+            guest: '8080'
+        grunt:
+            host: '9000'
+            guest: '9000'
+        livereload:
+            host: '35729'
+            guest: '35729'
+    private_address: 192.168.56.101
+    public_address: ''
+ssh:
+    forward_agent: true
+synced_folders:
+    homedir:
+        owner: vagant
+        group: vagrant
+        host: "/"
+        guest: "/vagrant"
+resources:
+    memory: '1536'
+    cpus: '1'
+
+provider:
+    virtualbox:
+        modifyvm:
+            natdnshostresolver1: on
+            natdnsproxy1: on
+chosen_provider: virtualbox
+
+chosen_provisoner: puppet
+provision:
+    puppet:
+        manifests_path: 'r10kConfig/manifests'
+        manifest_file: site.pp
+        module_path: 'r10kConfig/modules'
+        r10k:
+            puppet_dir: 'r10kConfig'
+            puppetfile_path: 'r10kConfig/Puppetfile'
+            module_path: r10kConfig/modules'

@@ -3,21 +3,23 @@
 
 require "yaml"
 
-dir = File.dirname(File.expand_path(__FILE__))
+config = YAML.load_file('vagrant-default.yaml')
 
-configValues  = YAML.load_file("#{dir}/vagrantConfig.yaml")
-config        = configValues['vagrantfile-config']
+if File.exist?('vagrant.yaml')
+    user_conf = YAML.load_file('vagrant.yaml')
+    config.merge!(user_conf)
+end
 
 Vagrant.require_version '>= 1.6.0'
 
-# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Begin box section
-    config.vm.box     = "#{config['box']}"
-    config.vm.box_url = "#{config['box_url']}"
+    config.vm.box     = config['box']
+    config.vm.box_url = config['box_url']
   # End box section
+
 
   # Begin network section
     if config['hostname'].to_s.strip.length != 0
@@ -58,7 +60,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           config.vm.synced_folder "#{folder['host']}", "#{folder['guest']}", id: "#{i}",
             rsync__args: rsync_args, rsync__exclude: rsync_exclude, rsync__auto: rsync_auto, type: 'rsync', group: sync_group, owner: sync_owner
-        elsif data['vm']['chosen_provider'] == 'parallels'
+        elsif data['chosen_provider'] == 'parallels'
           config.vm.synced_folder "#{folder['host']}", "#{folder['guest']}", id: "#{i}",
             group: sync_group, owner: sync_owner, mount_options: ['share']
         else
@@ -70,11 +72,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # End shared-folders section
 
   # Begin providers section
-  if config['vm']['chosen_provider'].empty? || config['vm']['chosen_provider'] == 'virtualbox'
+  if config['chosen_provider'].empty? || config['chosen_provider'] == 'virtualbox'
     ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
 
     config.vm.provider :virtualbox do |virtualbox|
-      config['vm']['provider']['virtualbox']['modifyvm'].each do |key, value|
+      config['provider']['virtualbox']['modifyvm'].each do |key, value|
         if key == 'memory'
           next
         end
@@ -86,15 +88,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           value = value ? 'on' : 'off'
         end
 
+        if key == 'natdnsproxy1'
+          value = value ? 'on' : 'off'
+        end
+
         virtualbox.customize ['modifyvm', :id, "--#{key}", "#{value}"]
       end
 
-      virtualbox.customize ['modifyvm', :id, '--memory', "#{config['memory']}"]
-      virtualbox.customize ['modifyvm', :id, '--cpus', "#{config['cpus']}"]
+      virtualbox.customize ['modifyvm', :id, '--memory', "#{config['resources']['memory']}"]
+      virtualbox.customize ['modifyvm', :id, '--cpus', "#{config['resources']['cpus']}"]
 
-      if config['vm']['provider']['virtualbox']['modifyvm']['name'].nil? ||
-        config['vm']['provider']['virtualbox']['modifyvm']['name'].empty?
-        if config['vm']['hostname'].to_s.strip.length != 0
+      if config['provider']['virtualbox']['modifyvm']['name'].nil? ||
+        config['provider']['virtualbox']['modifyvm']['name'].empty?
+        if config['hostname'].to_s.strip.length != 0
           virtualbox.customize ['modifyvm', :id, '--name', config.vm.hostname]
         end
       end
@@ -102,16 +108,26 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
   # End providers section
 
-
   # Begin provisioners section
+
+  # Begin shell section
+  if  config['chosen_provisioner'] == 'shell'
+    config['provisioner']['shell'].each do |i, script|
+      config.vm.provision "shell", path: ['script']
+    end
+  end
+  # End shell section
+
+  # Begin Puppet section (default)
   if config['chosen_provisioner'].empty? || config['chosen_provisioner'] == 'puppet'
 
-  # vagrantr10k (https://github.com/jantman/vagrant-r10k) config
+    # Begin vagrantr10k (https://github.com/jantman/vagrant-r10k) section
     if Vagrant.has_plugin?('vagrant-r10k') && !config['provisioner']['puppet']['r10k'].empty?
       config.r10k.puppet_dir = config['provisioner']['puppet']['r10k']['manifests_path']
       config.r10k.puppetfile_path = config['provisioner']['puppet']['r10k']['manifest_file']
       config.r10k.module_path = config['provisioner']['puppet']['r10k']['module_path']
     end
+    # End vagrantr10k section
 
     config.vm.provision "puppet" do |puppet|
       puppet.manifests_path = config['provisioner']['puppet']['manifests_path']
@@ -119,6 +135,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       puppet.module_path = config['provisioner']['puppet']['module_path']
     end
  end
+ # End Puppet section
+
  # End provisioners section
+
 
 end
