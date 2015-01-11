@@ -125,25 +125,25 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Begin Puppet section (default)
   if conf['chosen_provisioners'].empty? || conf['chosen_provisioners'].include?('puppet')
 
-    # config.vm.provision "puppet" do |puppet|
-    #   puppet.manifests_path = conf['provisioner']['puppet']['manifests_path']
-    #   puppet.manifest_file  = conf['provisioner']['puppet']['manifest_file']
-    #   puppet.module_path = conf['provisioner']['puppet']['module_path']
+    config.vm.provision "puppet" do |puppet|
+      puppet.manifests_path = conf['provisioner']['puppet']['manifests_path']
+      puppet.manifest_file  = conf['provisioner']['puppet']['manifest_file']
+      puppet.module_path = conf['provisioner']['puppet']['module_path']
 
-    #   if !conf['provisioner']['puppet']['facter'].nil?
-    #     conf['provisioner']['puppet']['facter'].each do |key, value|
-    #       puppet.facter = {
-    #         "#{key}" => "#{value}"
-    #       }
-    #     end
-    #   end
-    # end
+      if !conf['provisioner']['puppet']['facter'].nil?
+        conf['provisioner']['puppet']['facter'].each do |key, value|
+          puppet.facter = {
+            "#{key}" => "#{value}"
+          }
+        end
+      end
+    end
 
     # Begin vagrantr10k (https://github.com/jantman/vagrant-r10k) section
     if Vagrant.has_plugin?('vagrant-r10k') && !conf['provisioner']['puppet']['r10k'].empty?
-      # config.r10k.puppet_dir = conf['provisioner']['puppet']['r10k']['manifests_path']
-      # config.r10k.puppetfile_path = conf['provisioner']['puppet']['r10k']['manifest_file']
-      # config.r10k.module_path = conf['provisioner']['puppet']['r10k']['module_path']
+      config.r10k.puppet_dir = conf['provisioner']['puppet']['r10k']['manifests_path']
+      config.r10k.puppetfile_path = conf['provisioner']['puppet']['r10k']['manifest_file']
+      config.r10k.module_path = conf['provisioner']['puppet']['r10k']['module_path']
     end
     # End vagrantr10k section
 
